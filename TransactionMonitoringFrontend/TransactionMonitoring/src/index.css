@@ -1,0 +1,10 @@
+.custom-input input::placeholder,
+.custom-input .ant-input::placeholder {
+    color: #939793 !important;
+}
+
+.custom-input input,
+.custom-input .ant-input {
+    color: #d0e8d0 !important;
+    background-color: #0d130d !important;
+}

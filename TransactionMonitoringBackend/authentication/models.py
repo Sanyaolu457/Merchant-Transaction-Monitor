@@ -57,7 +57,6 @@ class MonitorUser(AbstractBaseUser, PermissionsMixin):
     invite_accepted_at = models.DateTimeField(null=True, blank=True)
 
     #  Tracking 
-
     created_by = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='created_users')
     last_login_ip = models.GenericIPAddressField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
