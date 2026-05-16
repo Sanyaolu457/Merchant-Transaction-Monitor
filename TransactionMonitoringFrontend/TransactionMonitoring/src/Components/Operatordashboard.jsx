@@ -55,6 +55,10 @@ function OperatorDashboard() {
         status: "", search: "", is_flagged: ""
     })
     const [chartData, setChartData] = useState([])
+    const [chartRange,   setChartRange]   = useState("7d")   
+    const [chartGrain,   setChartGrain]   = useState("daily") 
+
+    const CHART_DAYS = { "7d": 7, "30d": 30, "90d": 90 }
 
     const user = JSON.parse(localStorage.getItem('user') || '{}')
     const role = localStorage.getItem('role') || 'operator'
@@ -68,21 +72,36 @@ function OperatorDashboard() {
         setStats({ total, successful, failed, pending, volume })
     }
 
-    const buildChartData = useCallback((txns) => {
+     const buildChartData = useCallback((txns, range, grain) => {
+        const days     = CHART_DAYS[range] || 7
+        const cutoff   = new Date()
+        cutoff.setDate(cutoff.getDate() - days)
+ 
+        const inRange = txns.filter(t => new Date(t.created_at) >= cutoff)
+ 
         const grouped = {}
-
-        txns.forEach(t => {
-            const date = new Date(t.created_at).toLocaleDateString('en-GB', {
-                day:   '2-digit',
-                month: 'short',
-            })
-            grouped[date] = (grouped[date] || 0) + parseFloat(t.amount || 0)
+        inRange.forEach(t => {
+            const d = new Date(t.created_at)
+ 
+            let key
+            if (grain === "weekly") {
+                const startOfYear = new Date(d.getFullYear(), 0, 1)
+                const week = Math.ceil(((d - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7)
+                key = `W${week}`
+            } else {
+                key = d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" })
+            }
+ 
+            grouped[key] = (grouped[key] || 0) + parseFloat(t.amount || 0)
         })
-
+ 
         return Object.entries(grouped)
             .map(([date, value]) => ({ date, value }))
-            .sort((a, b) => new Date(a.date) - new Date(b.date))
-            .slice(-7)
+            .sort((a, b) => {
+                // keep insertion order for weeks; sort by date string for daily
+                if (grain === "weekly") return 0
+                return new Date(a.date) - new Date(b.date)
+            })
     }, [])
 
     const fetchTransactions = useCallback(async () => {
@@ -130,6 +149,10 @@ function OperatorDashboard() {
         fetchTransactions()
         fetchMerchants()
     }, [fetchTransactions, fetchMerchants])
+
+     useEffect(() => {
+        setChartData(buildChartData(transactions, chartRange, chartGrain))
+    }, [chartRange, chartGrain, transactions, buildChartData])
 
     useEffect(() => {
         if (!simulator.running) return
@@ -301,15 +324,28 @@ function OperatorDashboard() {
                         <Col xs={24} lg={16}>
 
                             {/* Chart */}
-                            <Card
+                             <Card
                                 title={<span style={S.cardTitle}>Transaction Volume Overview</span>}
                                 extra={
                                     <Space size={6}>
-                                        <Select defaultValue="7d" size="small" style={{ width: 100 }}>
+                                        {/* Range: changing this rebuilds the chart from existing data */}
+                                        <Select
+                                            value={chartRange}
+                                            size="small"
+                                            style={{ width: 110 }}
+                                            onChange={v => setChartRange(v)}
+                                        >
                                             <Option value="7d">Last 7 days</Option>
                                             <Option value="30d">Last 30 days</Option>
+                                            <Option value="90d">Last 90 days</Option>
                                         </Select>
-                                        <Select defaultValue="daily" size="small" style={{ width: 75 }}>
+                                        {/* Grain: daily vs weekly grouping */}
+                                        <Select
+                                            value={chartGrain}
+                                            size="small"
+                                            style={{ width: 80 }}
+                                            onChange={v => setChartGrain(v)}
+                                        >
                                             <Option value="daily">Daily</Option>
                                             <Option value="weekly">Weekly</Option>
                                         </Select>
@@ -323,9 +359,13 @@ function OperatorDashboard() {
                                         <ResponsiveContainer width="100%" height={185}>
                                             <LineChart data={chartData}>
                                                 <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#8c8c8c" }} axisLine={false} tickLine={false} />
-                                                <YAxis tick={{ fontSize: 10, fill: "#8c8c8c" }} axisLine={false} tickLine={false} tickFormatter={v => `${v / 1_000_000}M`} />
-                                                <Tooltip formatter={v => `₦${v.toLocaleString()}`} contentStyle={{ background: "#fff", border: "1px solid #f0f0f0", borderRadius: 6 }} />
-                                                <Line type="monotone" dataKey="value" stroke="#4096ff" strokeWidth={2} dot={false} />
+                                                <YAxis tick={{ fontSize: 10, fill: "#8c8c8c" }} axisLine={false} tickLine={false}
+                                                    tickFormatter={v => v >= 1_000_000 ? `₦${(v/1_000_000).toFixed(1)}M` : v >= 1000 ? `₦${(v/1000).toFixed(0)}K` : `₦${v}`} />
+                                                <Tooltip
+                                                    formatter={v => [`₦${v.toLocaleString()}`, "Volume"]}
+                                                    contentStyle={{ background: "#fff", border: "1px solid #f0f0f0", borderRadius: 6 }}
+                                                />
+                                                <Line type="monotone" dataKey="value" stroke="#4096ff" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
                                             </LineChart>
                                         </ResponsiveContainer>
                                     </Col>
@@ -334,7 +374,7 @@ function OperatorDashboard() {
                                             <Pie data={pieData} cx={55} cy={55} innerRadius={32} outerRadius={52} dataKey="value" strokeWidth={0}>
                                                 {pieData.map((e, i) => <Cell key={i} fill={e.color} />)}
                                             </Pie>
-                                            <Tooltip />
+                                            <Tooltip formatter={v => `${v} txns`} />
                                         </PieChart>
                                         <div style={{ marginTop: 6 }}>
                                             {pieData.map((d, i) => (
@@ -419,7 +459,7 @@ function OperatorDashboard() {
                                         <div key={i} style={S.merchantRow}>
                                             <span style={S.merchantRank}>{m.rank}.</span>
                                             <span style={S.merchantName}>{m.name}</span>
-                                            <span style={S.merchantVol}>{m.volume} txns</span>
+                                            <span style={S.merchantVol}>{m.volume} transactions</span>
                                         </div>
                                     ))}
                                 </Card>
