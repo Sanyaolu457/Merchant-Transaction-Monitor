@@ -109,3 +109,82 @@ export const authAPI = {
         return res.data
     },
 }
+
+// Transactions APIS
+
+export const transactionAPI = {
+
+    getAll: async (params = {}) => {
+        const query = new URLSearchParams()
+        if (params.status)     query.append('status',     params.status)
+        if (params.is_flagged) query.append('is_flagged', params.is_flagged)
+        if (params.merchant)   query.append('merchant',   params.merchant)
+        if (params.type)       query.append('type',       params.type)
+        if (params.search)     query.append('search',     params.search)
+
+        const res = await api.get(`/transactions/?${query.toString()}`)
+        return res.data
+    },
+
+    getOne: async (transaction_id) => {
+        const res = await api.get(`/transactions/${transaction_id}/`)
+        return res.data
+    },
+
+    create: async (data) => {
+        const res = await api.post('/transactions/', data)
+        return res.data
+    },
+
+    update: async (transaction_id, data) => {
+        const res = await api.patch(`/transactions/${transaction_id}/`, data)
+        return res.data
+    },
+
+    flag: async (transaction_id) => {
+        const res = await api.post(`/transactions/${transaction_id}/flag/`)
+        return res.data
+    },
+
+    simulator: async (action, interval = 3) => {
+        const res = await api.post('/transactions/simulator/control/', {
+            action,
+            interval,
+        })
+        return res.data
+    },
+}
+
+//  Merchants APIS
+
+export const merchantAPI = {
+
+    getAll: async (params = {}) => {
+        const query = new URLSearchParams()
+        if (params.status) query.append('status', params.status)
+        if (params.search) query.append('search', params.search)
+
+        const res = await api.get(`/merchants/?${query.toString()}`)
+        return res.data
+    },
+
+    getOne: async (merchant_id) => {
+        const res = await api.get(`/merchants/${merchant_id}/`)
+        return res.data
+    },
+
+    create: async (data) => {
+        const res = await api.post('/merchants/', data)
+        return res.data
+    },
+
+    update: async (merchant_id, data) => {
+        const res = await api.patch(`/merchants/${merchant_id}/`, data)
+        return res.data
+    },
+
+    deactivate: async (merchant_id) => {
+        const res = await api.delete(`/merchants/${merchant_id}/`)
+        return res.data
+    },
+}

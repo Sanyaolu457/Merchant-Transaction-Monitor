@@ -8,4 +8,15 @@ export default defineConfig({
     react(),
     babel({ presets: [reactCompilerPreset()] })
   ],
+
+  server: {
+      watch: {
+          usePolling: true, 
+          interval:   100,  
+      },
+    },
+
+    optimizeDeps: {
+      force: true
+    }
 })

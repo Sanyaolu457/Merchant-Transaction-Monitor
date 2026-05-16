@@ -52,6 +52,8 @@ INSTALLED_APPS = [
     #  Apps
     'authentication',
     'Transactions',
+    'Merchants',
+    'FraudRules',
 ]
 
 MIDDLEWARE = [

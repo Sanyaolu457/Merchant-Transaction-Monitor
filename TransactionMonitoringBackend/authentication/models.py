@@ -87,7 +87,7 @@ class MonitorUser(AbstractBaseUser, PermissionsMixin):
     def invite_is_valid(self):
         from django.utils import timezone
         return (
-            self.invite_status == 'pending' and
-            self.invite_expires_at and
-            self.invite_expires_at > timezone.now()  # ← add ()
+            self.invite_status == 'pending' and      # ← accepted = blocked
+            self.invite_expires_at is not None and
+            self.invite_expires_at > timezone.now()  # ← not expired
         )

@@ -30,8 +30,8 @@ class CreateOperatorSerializer(serializers.ModelSerializer):
         return user
     
 class SetPasswordSerializer(serializers.Serializer):
-    token = serializers.UUIDField()
-    password = serializers.CharField(min_length=8, write_only=True)
+    token            = serializers.UUIDField()
+    password         = serializers.CharField(min_length=8, write_only=True)
     confirm_password = serializers.CharField(min_length=8, write_only=True)
 
     def validate_token(self, value):
@@ -39,6 +39,11 @@ class SetPasswordSerializer(serializers.Serializer):
             user = MonitorUser.objects.get(invite_token=value)
         except MonitorUser.DoesNotExist:
             raise serializers.ValidationError("Invalid invite token.")
+
+        if user.invite_status == 'accepted':
+            raise serializers.ValidationError(
+                "This invite link has already been used."
+            )
 
         if not user.invite_is_valid:
             raise serializers.ValidationError("Invite link has expired.")
@@ -51,15 +56,20 @@ class SetPasswordSerializer(serializers.Serializer):
         return data
 
     def save(self):
-        token = self.validated_data['token']
+        token    = self.validated_data['token']
         password = self.validated_data['password']
 
         user = MonitorUser.objects.get(invite_token=token)
+
         user.set_password(password)
-        user.is_active = True
-        user.invite_status = 'accepted'
+        user.is_active          = True          
+        user.invite_status      = 'accepted'  
         user.invite_accepted_at = timezone.now()
         user.save()
+
+        user.refresh_from_db()
+        print(f"Saved → is_active: {user.is_active} | invite_status: {user.invite_status}")
+
         return user
 
 

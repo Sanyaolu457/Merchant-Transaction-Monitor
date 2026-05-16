@@ -5,7 +5,6 @@ import Login from './Components/LoginPage';
 import Admin from './Components/AdminDashboard';
 import Operator from './Components/Operatordashboard';
 import SetPassword from './Components/SetPassword.jsx';
-import './App.css'
 
 function App() {
 

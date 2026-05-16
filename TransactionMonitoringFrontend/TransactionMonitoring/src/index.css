@@ -1,6 +1,81 @@
+.ant-table-tbody > tr > td {
+    background: #ffffff !important;
+    border-color: #f0f0f0 !important;
+}
+.ant-table-thead > tr > th {
+    background: #ffffff !important;
+    color: #8c8c8c !important;
+    border-color: #f0f0f0 !important;
+}
+.ant-table-tbody > tr:hover > td {
+    background: #efeff1c1 !important;
+}
+
+.ant-menu-item {
+    color: #ffffff !important;
+}
+
+.ant-menu-item .ant-menu-title-content {
+    color: #ffffff !important;
+}
+
+.ant-menu-item .anticon {
+    color: #ffffff !important;
+}
+
+.ant-menu-item:hover {
+    color: #ffffff !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.ant-menu-item:hover .ant-menu-title-content {
+    color: #ffffff !important;
+}
+
+.ant-menu-item:hover .anticon {
+    color: #ffffff !important;
+}
+
+.ant-menu-item-selected {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
+}
+
+.ant-menu-item-selected .ant-menu-title-content {
+    color: #ffffff !important;
+}
+
+.ant-menu-item-selected .anticon {
+    color: #ffffff !important;
+}
+
+.ant-layout-sider-children {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+}
+
+.ant-menu-dark .ant-menu-item,
+.ant-menu-dark .ant-menu-item .ant-menu-title-content,
+.ant-menu-dark .ant-menu-item .anticon {
+    color: #ffffff !important;
+}
+
+.ant-menu-dark .ant-menu-item:hover {
+    background-color: rgba(255,255,255,0.1) !important;
+}
+
+.ant-menu-dark .ant-menu-item-selected {
+    background-color: rgba(255,255,255,0.15) !important;
+}
+
 .custom-input input::placeholder,
 .custom-input .ant-input::placeholder {
     color: #939793 !important;
+}
+
+.menu-items{
+    color: white !important;
 }
 
 .custom-input input,
