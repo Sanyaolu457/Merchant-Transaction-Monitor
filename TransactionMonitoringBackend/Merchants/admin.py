@@ -16,7 +16,7 @@ class TransactionInline(admin.TabularInline):
 @admin.register(Merchant)
 class MerchantAdmin(admin.ModelAdmin):
     list_display   = [
-        'business_name', 'business_type', 'status',
+        'business_name', 'business_type', 'status', 'has_user_account',
         'email', 'phone_number', 'transaction_count', 'created_at',
     ]
     list_filter    = ['status', 'business_type']
@@ -59,3 +59,8 @@ class MerchantAdmin(admin.ModelAdmin):
         if not change:
             obj.created_by = request.user
         super().save_model(request, obj, form, change)
+
+    def has_user_account(self, obj):
+        return obj.user is not None
+    has_user_account.boolean = True
+    has_user_account.short_description = 'Has Login'

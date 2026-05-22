@@ -75,6 +75,11 @@ export const authAPI = {
         return res.data
     },
 
+    checkInviteToken: async (token) => {
+        const res = await api.get(`/auth/set-password/?token=${token}`)
+        return res.data
+    },
+
     logout: async () => {
         const refresh = localStorage.getItem('refresh')
         await api.post('/auth/logout/', { refresh })
@@ -95,17 +100,29 @@ export const authAPI = {
     },
 
     createOperator: async (data) => {
-        const res = await api.post('/auth/create-operator/', data)
+        const res = await api.post('/auth/create-user/', data)
         return res.data
     },
 
     listOperators: async () => {
-        const res = await api.get('/auth/operators/')
+        const res = await api.get('/auth/users/')
         return res.data
     },
 
-    deactivateOperator: async (id) => {
-        const res = await api.post(`/auth/operators/${id}/deactivate/`)
+    // OTP
+    sendOTP: async (email) => {
+        const res = await api.post('/auth/otp/send/', { email })
+        return res.data
+    },
+
+    verifyOTP: async (email, code) => {
+        const res = await api.post('/auth/otp/verify/', { email, code })
+        return res.data
+    },
+
+    // Merchant Signup
+    merchantSignup: async (data) => {
+        const res = await api.post('/auth/signup/', data)
         return res.data
     },
 }
@@ -114,13 +131,19 @@ export const authAPI = {
 
 export const transactionAPI = {
 
+    
     getAll: async (params = {}) => {
         const query = new URLSearchParams()
-        if (params.status)     query.append('status',     params.status)
-        if (params.is_flagged) query.append('is_flagged', params.is_flagged)
-        if (params.merchant)   query.append('merchant',   params.merchant)
-        if (params.type)       query.append('type',       params.type)
-        if (params.search)     query.append('search',     params.search)
+        if (params.status)         query.append('status',         params.status)
+        if (params.is_flagged)     query.append('is_flagged',     params.is_flagged)
+        if (params.merchant)       query.append('merchant',       params.merchant)
+        if (params.type)           query.append('type',           params.type)
+        if (params.search)         query.append('search',         params.search)
+        if (params.channel_detail) query.append('channel_detail', params.channel_detail)
+        if (params.amount_min)     query.append('amount_min',     params.amount_min)
+        if (params.amount_max)     query.append('amount_max',     params.amount_max)
+        if (params.date_from)      query.append('date_from',      params.date_from)
+        if (params.date_to)        query.append('date_to',        params.date_to)
 
         const res = await api.get(`/transactions/?${query.toString()}`)
         return res.data
@@ -161,9 +184,8 @@ export const merchantAPI = {
 
     getAll: async (params = {}) => {
         const query = new URLSearchParams()
-        if (params.status) query.append('status', params.status)
         if (params.search) query.append('search', params.search)
-
+        if (params.status) query.append('status', params.status)
         const res = await api.get(`/merchants/?${query.toString()}`)
         return res.data
     },
@@ -185,6 +207,97 @@ export const merchantAPI = {
 
     deactivate: async (merchant_id) => {
         const res = await api.delete(`/merchants/${merchant_id}/`)
+        return res.data
+    },
+}
+
+export const flagRulesAPI = { 
+    getRules: async (params = {}) => {
+        const query = new URLSearchParams()
+        if (params.is_active !== undefined) query.append("is_active", params.is_active)
+        if (params.rule_type)               query.append("rule_type", params.rule_type)
+        if (params.risk_level)              query.append("risk_level", params.risk_level)
+        const res = await api.get(`/fraud/rules/?${query.toString()}`)
+        return res.data
+    },
+ 
+    getRule: async (id) => {
+        const res = await api.get(`/fraud/rules/${id}/`)
+        return res.data
+    },
+ 
+    createRule: async (data) => {
+        const res = await api.post("/fraud/rules/", data)
+        return res.data
+    },
+ 
+    updateRule: async (id, data) => {
+        const res = await api.patch(`/fraud/rules/${id}/`, data)
+        return res.data
+    },
+ 
+    deleteRule: async (id) => {
+        const res = await api.delete(`/fraud/rules/${id}/`)
+        return res.data
+    },
+ 
+    toggleRule: async (id) => {
+        const res = await api.post(`/fraud/rules/${id}/toggle/`)
+        return res.data
+    },
+ 
+    getRuleStats: async () => {
+        const res = await api.get("/fraud/rules/stats/")
+        return res.data
+    },
+  
+    getTransactionFlags: async (transaction_id) => {
+        const res = await api.get(`/fraud/transactions/${transaction_id}/flags/`)
+        return res.data
+    },
+ 
+    getTransactionFlagHistory: async (transaction_id) => {
+        const res = await api.get(`/fraud/transactions/${transaction_id}/flag-history/`)
+        return res.data
+    },
+ 
+    getAllFlags: async (params = {}) => {
+        const query = new URLSearchParams()
+        if (params.rule)    query.append("rule",    params.rule)
+        if (params.page)    query.append("page",    params.page)
+        const res = await api.get(`/fraud/flags/?${query.toString()}`)
+        return res.data
+    },
+ 
+    getAllFlagHistory: async (params = {}) => {
+        const query = new URLSearchParams()
+        if (params.action)  query.append("action",  params.action)
+        if (params.page)    query.append("page",    params.page)
+        const res = await api.get(`/fraud/flag-history/?${query.toString()}`)
+        return res.data
+    },
+
+ 
+    getReports: async (params = {}) => {
+        const query = new URLSearchParams()
+        if (params.status)   query.append("status",   params.status)
+        if (params.severity) query.append("severity", params.severity)
+        const res = await api.get(`/fraud/reports/?${query.toString()}`)
+        return res.data
+    },
+ 
+    createReport: async (data) => {
+        const res = await api.post("/fraud/reports/", data)
+        return res.data
+    },
+ 
+    getReport: async (id) => {
+        const res = await api.get(`/fraud/reports/${id}/`)
+        return res.data
+    },
+ 
+    resolveReport: async (id, resolution_note) => {
+        const res = await api.post(`/fraud/reports/${id}/resolve/`, { resolution_note })
         return res.data
     },
 }

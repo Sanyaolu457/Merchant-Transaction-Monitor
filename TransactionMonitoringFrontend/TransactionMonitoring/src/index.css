@@ -69,17 +69,11 @@
     background-color: rgba(255,255,255,0.15) !important;
 }
 
-.custom-input input::placeholder,
-.custom-input .ant-input::placeholder {
-    color: #939793 !important;
-}
-
 .menu-items{
     color: white !important;
 }
 
-.custom-input input,
-.custom-input .ant-input {
-    color: #d0e8d0 !important;
-    background-color: #0d130d !important;
+@keyframes flashRow {
+    0%   { background: #fff1f0; }
+    100% { background: transparent; }
 }

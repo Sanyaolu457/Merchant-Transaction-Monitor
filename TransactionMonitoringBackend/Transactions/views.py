@@ -3,8 +3,8 @@ from rest_framework.response    import Response
 from rest_framework             import status
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts           import get_object_or_404
-from .models       import Transaction, TransactionAuditLog
-from .serializers  import (
+from .models      import Transaction, TransactionAuditLog
+from .serializers import (
     TransactionCreateSerializer,
     TransactionListSerializer,
     TransactionDetailSerializer,
@@ -44,12 +44,30 @@ class TransactionListCreateView(APIView):
                 reference__icontains=search
             )
 
-        transactions = list(transactions) 
-        return Response({
-            "count":   len(transactions), 
-            "results": TransactionListSerializer(transactions, many=True).data
-        })
-    
+        channel_detail = request.query_params.get('channel_detail')
+        if channel_detail:
+            transactions = transactions.filter(
+                channel_detail__name__icontains=channel_detail
+            )
+
+        amount_min = request.query_params.get('amount_min')
+        amount_max = request.query_params.get('amount_max')
+        if amount_min:
+            transactions = transactions.filter(amount__gte=amount_min)
+        if amount_max:
+            transactions = transactions.filter(amount__lte=amount_max)
+
+        date_from = request.query_params.get('date_from')
+        date_to   = request.query_params.get('date_to')
+        if date_from:
+            transactions = transactions.filter(created_at__date__gte=date_from)
+        if date_to:
+            transactions = transactions.filter(created_at__date__lte=date_to)
+
+        count        = transactions.count()
+        serializer   = TransactionListSerializer(transactions, many=True)
+        return Response({"count": count, "results": serializer.data})
+
     def post(self, request):
         serializer = TransactionCreateSerializer(data=request.data)
         if serializer.is_valid():
@@ -66,13 +84,11 @@ class TransactionDetailView(APIView):
             Transaction.objects.select_related(
                 'merchant', 'channel', 'channel_detail'
             ),
-            transaction_id=transaction_id
+            transaction_id=transaction_id,
         )
 
     def get(self, request, transaction_id):
-        transaction = self.get_object(transaction_id)
-        serializer  = TransactionDetailSerializer(transaction)
-        return Response(serializer.data)
+        return Response(TransactionDetailSerializer(self.get_object(transaction_id)).data)
 
     def patch(self, request, transaction_id):
         transaction = self.get_object(transaction_id)
@@ -82,36 +98,35 @@ class TransactionDetailView(APIView):
             transaction, data=request.data, partial=True
         )
         if serializer.is_valid():
-            updated = serializer.save()
-
+            updated    = serializer.save()
             new_status = updated.status
+
             if old_status != new_status:
                 TransactionAuditLog.objects.create(
                     transaction=updated,
                     old_status=old_status,
                     new_status=new_status,
                     changed_by=request.user,
-                    reason=request.data.get('reason', '')
+                    reason=request.data.get('reason', ''),
                 )
 
-            return Response(
-                TransactionDetailSerializer(updated).data
-            )
+            return Response(TransactionDetailSerializer(updated).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-class TransactionFlagView(APIView):
+class TransactionIngestView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def post(self, request, transaction_id):
-        transaction = get_object_or_404(Transaction, transaction_id=transaction_id)
+    def post(self, request):
+        serializer = TransactionCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            txn = serializer.save()
+            return Response({
+                "status":    "received",
+                "reference": txn.reference,
+                "message":   "Transaction recorded successfully",
+            }, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        transaction.is_flagged = not transaction.is_flagged
-        transaction.save()
-
-        action = "flagged" if transaction.is_flagged else "unflagged"
-        return Response({
-            "message":    f"Transaction {action} successfully",
-            "is_flagged": transaction.is_flagged,
-            "reference":  transaction.reference,
-        })
+    def is_valid_key(self, key):
+        from .models import APIKey
+        return APIKey.objects.filter(key=key, is_active=True).exists()

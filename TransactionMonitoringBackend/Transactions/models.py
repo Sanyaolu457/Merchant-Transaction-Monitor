@@ -1,8 +1,8 @@
 from django.db import models
 import uuid
 from django.conf import settings
-from django.db.models.signals import pre_save
 from django.dispatch import receiver
+import secrets
 from Merchants.models import Merchant
 
 class Channel(models.Model):
@@ -41,6 +41,13 @@ class Transaction(models.Model):
         ("reversed", "Reversed"),
     ]
 
+    RISK_LEVELS = [
+        ("low", "Low"),
+        ("medium", "Medium"),
+        ("high", "High"),
+        ("critical", "Critical"),
+    ]
+
 
     id = models.BigAutoField(primary_key=True)
     transaction_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
@@ -53,18 +60,29 @@ class Transaction(models.Model):
     channel = models.ForeignKey(Channel, on_delete=models.PROTECT)
     channel_detail = models.ForeignKey(ChannelDetail, on_delete=models.PROTECT)
     is_flagged = models.BooleanField(default=False)
+    risk_score = models.IntegerField(default=0)
+    risk_level = models.CharField( max_length=20, choices=RISK_LEVELS, default="low" )
+    risk_reasons = models.JSONField(default=list, blank=True)
+    requires_review = models.BooleanField(default=False)
+    reviewed_by = models.ForeignKey( settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    ip_address = models.GenericIPAddressField( null=True, blank=True )
+    device_id = models.CharField( max_length=255, null=True, blank=True )
+    location = models.CharField( max_length=255, null=True, blank=True )
+    idempotency_key = models.CharField( max_length=100, unique=True, null=True, blank=True )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['-created_at']
-        indexes  = [
+        indexes = [
             models.Index(fields=['status']),
             models.Index(fields=['is_flagged']),
             models.Index(fields=['customer_name']),
             models.Index(fields=['created_at']),
             models.Index(fields=['reference']),
-            # models.Index(fields=['merchant']),
+            models.Index(fields=['risk_score']),
+            models.Index(fields=['risk_level']),
         ]
 
     def __str__(self):
@@ -108,19 +126,18 @@ class TransactionAuditLog(models.Model):
     def __str__(self):
         return f"{self.transaction.reference} | {self.old_status} → {self.new_status}"
 
-@receiver(pre_save, sender=Transaction)
-def track_status_change(sender, instance, **kwargs):
-    if instance.pk is None:
-        return
 
-    try:
-        old = Transaction.objects.get(pk=instance.pk)
-    except Transaction.DoesNotExist:
-        return
+class APIKey(models.Model):
+    merchant = models.OneToOneField( 'Merchants.Merchant', on_delete=models.CASCADE, related_name='api_key' )
+    key  = models.CharField(max_length=64, unique=True)
+    is_active   = models.BooleanField(default=True)
+    created_at  = models.DateTimeField(auto_now_add=True)
+    last_used   = models.DateTimeField(null=True, blank=True)
 
-    if old.status != instance.status:
-        TransactionAuditLog.objects.create(
-            transaction=instance,
-            old_status=old.status,
-            new_status=instance.status,
-        )
+    def save(self, *args, **kwargs):
+        if not self.key:
+            self.key = secrets.token_hex(32)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.merchant.business_name} — {'Active' if self.is_active else 'Inactive'}"

@@ -3,9 +3,9 @@ from django.utils import timezone
 from datetime import timedelta
 import random
 from decimal import Decimal
-
 from Merchants.models    import Merchant
 from Transactions.models import Transaction, Channel, ChannelDetail
+from FraudRules.risk_engine import RiskEngine
 
 
 FIRST_NAMES = [
@@ -18,6 +18,16 @@ LAST_NAMES = [
     "Adeyemi", "Okonkwo", "Balogun", "Musa", "Abubakar", "Eze",
     "Nwosu", "Ibrahim", "Abdullahi", "Okafor", "Adeleke", "Chukwu",
     "Olawale", "Nnamdi", "Adesanya", "Okeke", "Lawal", "Babatunde",
+]
+
+_DEVICE_IDS = [f"DEV-{i:04d}" for i in range(1, 30)]
+_IP_POOL    = [
+    "102.89.45.1", "105.112.3.22", "197.210.64.5", "41.58.200.10",
+    "196.1.149.33", "154.120.0.1",  "41.184.200.1", "102.0.0.1",
+]
+_LOCATIONS  = [
+    "Lagos, NG", "Abuja, NG", "Kano, NG", "Port Harcourt, NG",
+    "Ibadan, NG", "Enugu, NG", "Kaduna, NG", "Benin City, NG",
 ]
 
 TXN_TYPES   = [c[0] for c in Transaction.TRANSACTION_TYPE]
@@ -41,11 +51,11 @@ TXN_TYPE_WEIGHTS = [
 ]
 
 CHANNEL_MAP = {
-    "Card":         ["Online Card", "POS TERMINAL"],
-    "Digital":     ["Mobile App", "Web", "USSD"],
-    "Api":         ["Internal System Api", "Partner Api"],
-    "Bank":        ["Bank Branch Counter"],
-    "Cash":           ["Agent(Cash Out/In)", "ATM"],
+    "Card":    ["Online Card", "POS TERMINAL"],
+    "Digital": ["Mobile App", "Web", "USSD"],
+    "Api":     ["Internal System Api", "Partner Api"],
+    "Bank":    ["Bank Branch Counter"],
+    "Cash":    ["Agent(Cash Out/In)", "ATM"],
 }
 
 
@@ -57,9 +67,9 @@ def weighted_choice(pairs):
 def random_amount():
     tier = random.random()
     if tier < 0.50:
-        return Decimal(random.randint(500, 9_999))
+        return Decimal(random.randint(500,     9_999))
     if tier < 0.80:
-        return Decimal(random.randint(10_000, 99_999))
+        return Decimal(random.randint(10_000,  99_999))
     if tier < 0.95:
         return Decimal(random.randint(100_000, 999_999))
     return Decimal(random.randint(1_000_000, 9_999_999))
@@ -76,7 +86,7 @@ def random_created_at(days_back=90):
 
 
 class Command(BaseCommand):
-    help = "Seed fake transactions for dashboard testing"
+    help = "Seed fake transactions for dashboard testing. Risk scores are assigned by the risk engine, not randomly."
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -103,10 +113,16 @@ class Command(BaseCommand):
                 "No active merchants found. Run seed_merchants first."
             )
 
+        from FraudRules.models import FlagRule
+        if not FlagRule.objects.filter(is_active=True).exists():
+            raise CommandError(
+                "No active FlagRules found. Run: python manage.py seed_flag_rules"
+            )
+
         channels = self._get_or_create_channels()
         created  = 0
 
-        self.stdout.write(f"Seeding {count} transactions...")
+        self.stdout.write(f"Seeding {count} transactions (risk engine will evaluate each)...")
 
         for _ in range(count):
             channel_name   = random.choice(list(channels.keys()))
@@ -116,11 +132,6 @@ class Command(BaseCommand):
             txn_type   = weighted_choice(TXN_TYPE_WEIGHTS)
             txn_status = weighted_choice(STATUS_WEIGHTS)
 
-            if txn_type not in TXN_TYPES:
-                txn_type = TXN_TYPES[0]
-            if txn_status not in TXN_STATUSES:
-                txn_status = TXN_STATUSES[0]
-
             txn = Transaction(
                 merchant         = random.choice(merchants),
                 customer_name    = f"{random.choice(FIRST_NAMES)} {random.choice(LAST_NAMES)}",
@@ -129,10 +140,11 @@ class Command(BaseCommand):
                 status           = txn_status,
                 channel          = channel_obj,
                 channel_detail   = channel_detail,
-                is_flagged       = random.random() < 0.08,
+                ip_address       = random.choice(_IP_POOL),
+                device_id        = random.choice(_DEVICE_IDS) if random.random() < 0.3 else None,
+                location         = random.choice(_LOCATIONS),
             )
             txn.save()
-
             Transaction.objects.filter(pk=txn.pk).update(
                 created_at=random_created_at()
             )
@@ -142,8 +154,11 @@ class Command(BaseCommand):
                 self.stdout.write(f"  {created}/{count} done...")
 
         self.stdout.write(self.style.SUCCESS(
-            f"✓ Seeded {created} transactions across {len(merchants)} merchant(s)."
+            f"\n✓ Seeded {created} transactions across {len(merchants)} merchant(s)."
         ))
+        self.stdout.write(
+            "Risk levels and flags are now set by the engine based on your active FlagRules."
+        )
 
     def _get_or_create_channels(self):
         result = {}

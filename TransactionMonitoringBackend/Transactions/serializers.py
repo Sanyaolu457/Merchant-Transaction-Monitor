@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from .models import Transaction, TransactionAuditLog, Channel, ChannelDetail
-from Merchants.models import Merchant
 
 
 class ChannelSerializer(serializers.ModelSerializer):
@@ -26,28 +25,30 @@ class TransactionCreateSerializer(serializers.ModelSerializer):
             'status',
             'channel',
             'channel_detail',
+            'ip_address',
+            'device_id',
+            'location',
         ]
 
     def validate_amount(self, value):
         if value <= 0:
-            raise serializers.ValidationError("Amount must be greater than 0")
+            raise serializers.ValidationError("Amount must be greater than 0.")
         return value
 
     def validate(self, data):
         channel        = data.get('channel')
         channel_detail = data.get('channel_detail')
-        if channel_detail and channel:
-            if channel_detail.channel != channel:
-                raise serializers.ValidationError(
-                    "Channel detail does not belong to selected channel"
-                )
+        if channel and channel_detail and channel_detail.channel != channel:
+            raise serializers.ValidationError(
+                "Channel detail does not belong to the selected channel."
+            )
         return data
 
 
 class TransactionListSerializer(serializers.ModelSerializer):
-    merchant_name  = serializers.CharField(source='merchant.business_name', read_only=True)
-    channel_name   = serializers.CharField(source='channel.name',           read_only=True)
-    channel_detail_name = serializers.CharField( source='channel_detail.name', read_only=True)
+    merchant_name       = serializers.CharField(source='merchant.business_name', read_only=True)
+    channel_name        = serializers.CharField(source='channel.name',           read_only=True)
+    channel_detail_name = serializers.CharField(source='channel_detail.name',    read_only=True)
 
     class Meta:
         model  = Transaction
@@ -63,6 +64,10 @@ class TransactionListSerializer(serializers.ModelSerializer):
             'channel_name',
             'channel_detail_name',
             'is_flagged',
+            'risk_level',
+            "risk_score", 
+            "risk_reasons",
+            "requires_review",
             'created_at',
         ]
 
@@ -87,6 +92,13 @@ class TransactionDetailSerializer(serializers.ModelSerializer):
             'channel',
             'channel_detail',
             'is_flagged',
+            'risk_score',
+            'risk_level',
+            'risk_reasons',
+            'requires_review',
+            'ip_address',
+            'device_id',
+            'location',
             'created_at',
             'updated_at',
             'audit_logs',
@@ -105,7 +117,7 @@ class TransactionUpdateSerializer(serializers.ModelSerializer):
     def validate_status(self, value):
         valid = [s[0] for s in Transaction.TRANSACTION_STATUS]
         if value not in valid:
-            raise serializers.ValidationError(f"Invalid status. Choose from {valid}")
+            raise serializers.ValidationError(f"Invalid status. Choose from: {valid}.")
         return value
 
 
