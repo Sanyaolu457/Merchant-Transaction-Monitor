@@ -78,6 +78,7 @@ class RiskEngine:
             'frequency':        cls._frequency,
             'velocity':         cls._velocity,
             'night_activity':   cls._night_activity,
+            'failed_transactions': cls._failed_transactions,
         }
         handler = handlers.get(rule.rule_type)
         if handler:
@@ -146,6 +147,29 @@ class RiskEngine:
         hour = txn.created_at.hour
         if hour >= 23 or hour < 4:
             return True, f"Transaction at suspicious hour ({hour:02d}:xx UTC)"
+        return False, None
+    
+    @classmethod
+    def _failed_transactions(cls, txn, rule):
+
+        window = timezone.now() - timedelta(
+            minutes=rule.threshold_minutes or 5
+        )
+
+        threshold = rule.threshold_count or 3
+
+        failed_count = Transaction.objects.filter(
+            customer_name=txn.customer_name,
+            status='failed',
+            created_at__gte=window,
+        ).count()
+
+        if failed_count >= threshold:
+            return True, (
+                f"{failed_count} failed transactions "
+                f"in {rule.threshold_minutes or 5} minutes"
+            )
+
         return False, None
 
     @classmethod

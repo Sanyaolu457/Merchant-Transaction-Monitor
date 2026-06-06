@@ -10,13 +10,18 @@ from .serializers import MerchantSerializer, MerchantListSerializer
 from authentication.permissions import (
     IsAdminOrAbove, IsOperatorOrAbove, CanSuspendMerchant,
 )
-
+from django.db.models import Q
+from authentication.models import MonitorUser
+from authentication.utils  import send_invite_email, set_invite_expiry
 
 class MerchantListCreateView(APIView):
     permission_classes = [IsAuthenticated, IsOperatorOrAbove]
 
     def get(self, request):
-        merchants = Merchant.objects.all()
+        merchants = Merchant.objects.filter(
+            Q(user__invite_status='accepted') |
+            Q(user__isnull=True)
+        )
  
         status_filter = request.query_params.get('status')
         if status_filter:
@@ -41,6 +46,8 @@ class MerchantListCreateView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         email = serializer.validated_data['email']
+        first_name=request.data.get('first_name', '')
+        last_name=request.data.get('last_name', '')
 
         if MonitorUser.objects.filter(email=email).exists():
             user = MonitorUser.objects.get(email=email)
@@ -56,9 +63,10 @@ class MerchantListCreateView(APIView):
                 )
         else:
             user = MonitorUser.objects.create_user(
-                email      = email,
-                first_name = serializer.validated_data.get('business_name', ''),
-                role       = 'user',
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                role='user',
             )
             user.created_by = request.user
             set_invite_expiry(user)
@@ -84,7 +92,8 @@ class MerchantDetailView(APIView):
     permission_classes = [IsAuthenticated, IsOperatorOrAbove]
 
     def get_object(self, merchant_id):
-        return get_object_or_404(Merchant, merchant_id=merchant_id)
+        return get_object_or_404(
+            Merchant, merchant_id=merchant_id )
 
     def get(self, request, merchant_id):
         return Response(MerchantSerializer(self.get_object(merchant_id)).data)
@@ -131,15 +140,12 @@ class MerchantSuspendView(APIView):
         })
 
 def _create_user_for_merchant(merchant, created_by=None):
-    from authentication.models import MonitorUser
-    from authentication.utils  import send_invite_email, set_invite_expiry
 
     if MonitorUser.objects.filter(email=merchant.email).exists():
         return
 
     user = MonitorUser.objects.create_user(
         email      = merchant.email,
-        first_name = merchant.business_name,
         role       = 'user',
     )
     user.created_by = created_by

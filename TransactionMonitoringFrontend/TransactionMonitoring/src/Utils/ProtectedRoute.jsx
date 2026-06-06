@@ -9,7 +9,7 @@ export function ProtectedRoute({ children, role }) {
     if (role && currentRole !== role) {
         if (currentRole === 'super_admin') {
             return <Navigate to="/admin/dashboard" replace />
-        } else {
+        } else if (currentRole === 'operator') {
             return <Navigate to="/operator/dashboard" replace />
         }
     }

@@ -4,6 +4,7 @@ from django.conf import settings
 from django.dispatch import receiver
 import secrets
 from Merchants.models import Merchant
+from Terminal.models import Terminal
 
 class Channel(models.Model):
     name = models.CharField(max_length=20, unique=True)
@@ -53,6 +54,7 @@ class Transaction(models.Model):
     transaction_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     reference = models.CharField(max_length=30, unique=True, blank=True)
     merchant = models.ForeignKey( Merchant, on_delete=models.PROTECT, related_name='transactions', null=True, blank=True )
+    terminal = models.ForeignKey(Terminal, on_delete=models.SET_NULL, null=True, blank=True, related_name='transactions')
     customer_name = models.CharField(max_length=100, blank=True, null=True)
     amount = models.DecimalField(max_digits=20, decimal_places=2)
     transaction_type = models.CharField(max_length=30, choices=TRANSACTION_TYPE)

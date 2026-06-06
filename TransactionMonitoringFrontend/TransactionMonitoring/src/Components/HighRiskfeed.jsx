@@ -4,10 +4,10 @@ import { S } from "../Styles/dashboardStyless"
 import { statusColor } from "../Pages/Operatordashboard"
 
 const RISK_COLORS = {
-    critical: "#ff4d4f",
-    high:     "#fa8c16",
-    medium:   "#faad14",
-    low:      "#52c41a",
+    critical: "#ff1519",
+    high:     "#de6523",
+    medium:   "#e3a21e",
+    low:      "#42702c",
 }
 const RISK_BG = {
     critical: "#fff1f0",
@@ -159,7 +159,7 @@ const columns = [
 ]
 
 export default function HighRiskFeed({ liveTransactions = [], onViewAll }) {
-    const feed = liveTransactions.filter(isHighRisk).slice(0, 6)
+    const feed = liveTransactions.filter(isHighRisk).slice(0, 5)
 
     return (
         <div style={{ background: "#fff", border: "1px solid #f0f0f0", borderRadius: 8, boxShadow: "0 1px 4px rgba(0,0,0,0.04)", overflow: "hidden" }}>

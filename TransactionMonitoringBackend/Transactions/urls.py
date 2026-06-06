@@ -7,8 +7,8 @@ from .views import (
 from .simulator_view import TransactionSimulatorControlView
 
 urlpatterns = [
-    path('',      TransactionListCreateView.as_view()),
-    path('ingest/',    TransactionIngestView.as_view()),
-    path('simulator/control/',  TransactionSimulatorControlView.as_view()),
-    path('<uuid:transaction_id>/',  TransactionDetailView.as_view()),
+    path('transactions/',      TransactionListCreateView.as_view()),
+    path('transactions/ingest/',    TransactionIngestView.as_view()),
+    path('transactions/simulator/control/',  TransactionSimulatorControlView.as_view()),
+    path('transactions/<uuid:transaction_id>/',  TransactionDetailView.as_view()),
 ]

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { transactionAPI, merchantAPI } from "../Api"
 
+
+
 export function useTransactionData({
     initialFilters = {},
     autoFetch      = true,
@@ -13,13 +15,23 @@ export function useTransactionData({
     const filtersRef = useRef(initialFilters)
 
     const computeStats = useCallback((txns) => {
+        console.log("computeStats running, sample risk_level:", txns[0]?.risk_level)
+
         const total      = txns.length
         const successful = txns.filter(t => t.status === "completed").length
         const flagged    = txns.filter(t => t.is_flagged).length
         const failed     = txns.filter(t => t.status === "failed").length
         const pending    = txns.filter(t => t.status === "pending").length
         const volume     = txns.reduce((s, t) => s + parseFloat(t.amount || 0), 0)
-        setStats({ total, successful, pending, flagged, failed, volume })
+
+        const critical   = txns.filter(t => t.risk_level === "critical").length
+        const high       = txns.filter(t => t.risk_level === "high").length
+        const medium     = txns.filter(t => t.risk_level === "medium").length
+        const low        = txns.filter(t => t.risk_level === "low").length
+        
+        console.log("counts:", { critical, high, medium, low })
+        
+        setStats({ total, successful, pending, flagged, failed, volume, critical, high, medium, low })
     }, [])
 
     const fetchTransactions = useCallback(async (extraFilters = {}) => {

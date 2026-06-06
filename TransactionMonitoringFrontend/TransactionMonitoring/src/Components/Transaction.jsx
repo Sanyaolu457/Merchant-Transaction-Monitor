@@ -12,10 +12,10 @@ import { S } from "../Styles/dashboardStyless"
 const { Option }  = Select
 
 const RISK_COLORS = {
-    critical: "#ff4d4f",
-    high:     "#fa8c16",
-    medium:   "#faad14",
-    low:      "#52c41a",
+    critical: "#ff1519",
+    high:     "#de6523",
+    medium:   "#e3a21e",
+    low:      "#42702c",
 }
 const RISK_BG = {
     critical: "#fff1f0",

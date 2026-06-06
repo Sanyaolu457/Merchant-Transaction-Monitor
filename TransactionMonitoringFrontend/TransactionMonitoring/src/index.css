@@ -73,6 +73,13 @@
     color: white !important;
 }
 
+.alert-row-critical td {
+    background: #fff5f5 !important;
+}
+.alert-row-high td {
+    background: #fffbf5 !important;
+}
+
 @keyframes flashRow {
     0%   { background: #fff1f0; }
     100% { background: transparent; }

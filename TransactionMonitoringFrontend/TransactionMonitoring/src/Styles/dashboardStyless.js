@@ -108,7 +108,7 @@ export const S = {
         borderRadius: 8,
         boxShadow:    "0 1px 4px rgba(0,0,0,0.04)",
     },
-    cardTitle: { color: "#1a1a2e", fontWeight: 600, fontSize: 14 },
+    cardTitle:  { color: "#1a1a2e", fontWeight: 600, fontSize: 14 },
     legendItem: { display: "flex", alignItems: "center", gap: 5, marginBottom: 12 },
     legendDot:  (color) => ({
         width:        14,
@@ -138,9 +138,9 @@ export const S = {
         justifyContent: "center",
         fontSize:       12,
     }),
-    alertTitle: { color: "#1a1a2e", fontSize: 12, fontWeight: 600 },
-    alertSub:   { color: "#8c8c8c", fontSize: 11 },
-    alertTime:  { color: "#bfbfbf", fontSize: 10, whiteSpace: "nowrap", marginTop: 2 },
+    alertTitle:  { color: "#1a1a2e", fontSize: 12, fontWeight: 600 },
+    alertSub:    { color: "#8c8c8c", fontSize: 11 },
+    alertTime:   { color: "#bfbfbf", fontSize: 10, whiteSpace: "nowrap", marginTop: 2 },
     merchantRow: {
         display:      "flex",
         alignItems:   "center",
@@ -155,4 +155,56 @@ export const S = {
     tableText:    { color: "#222121", fontSize: 12 },
     amount:       { color: "#1a1a2e", fontSize: 12, fontWeight: 600 },
     timeText:     { color: "#bfbfbf", fontSize: 11 },
+
+    color: {
+        critical : "#ff4d4f",
+        high     : "#fa8c16",
+        medium   : "#faad14",
+        low      : "#52c41a",
+        blue     : "#1677ff",
+        purple   : "#722ed1",
+        green    : "#42702c",
+        muted    : "#8c8c8c",
+        text     : "#1a1a2e",
+        subText  : "#595959",
+        border   : "#f0f0f0",
+        bg       : "#f5f6fa",
+    },
+
+    riskTag: { critical: "red", high: "orange", medium: "gold", low: "green" },
+
+    statusTag: {
+        completed : "success",
+        pending   : "warning",
+        failed    : "error",
+        processing: "processing",
+        reversed  : "purple",
+    },
+
+    reportStatusTag: {
+        open        : "error",
+        under_review: "warning",
+        resolved    : "success",
+        dismissed   : "default",
+    },
+
+    chartTooltip: { borderRadius: 8, fontSize: 12 },
+
+    axisTick: { fontSize: 10, fill: "#8c8c8c" },
+
+    monoText: (color = "#1677ff") => ({
+        fontFamily: "monospace",
+        fontSize:   12,
+        color,
+    }),
+
+    riskScoreColor: (v) =>
+        v >= 50 ? "#ff4d4f" : v >= 25 ? "#faad14" : "#52c41a",
+
+    emptyState: {
+        padding:   "15px 0",
+        textAlign: "center",
+        color:     "#8c8c8c",
+        fontSize:  12,
+    },
 }

@@ -29,8 +29,6 @@ class Merchant(models.Model):
     business_type = models.CharField(max_length=30, choices=BUSINESS_TYPE)
     status        = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     email        = models.EmailField(unique=True)
-    first_name = models.CharField(max_length=25, blank=True, null=True)
-    last_name = models.CharField(max_length=25, blank=True, null=True)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     address      = models.TextField(blank=True, null=True)
     bank_name      = models.CharField(max_length=100, blank=True, null=True)
@@ -45,6 +43,14 @@ class Merchant(models.Model):
 
     def __str__(self):
         return f"{self.business_name} ({self.status})"
+    
+    @property
+    def first_name(self):
+        return self.user.first_name
+
+    @property
+    def last_name(self):
+        return self.user.last_name
 
     @property
     def transaction_count(self):

@@ -5,6 +5,7 @@ from .models              import MonitorUser
 from .permissions         import ROLE_SUPER_ADMIN, ROLE_ADMIN, ROLE_OPERATOR, ROLE_USER
 from .email_verification  import EmailVerification
 from Merchants.models     import Merchant
+from Merchants.serializers import MerchantListSerializer
 
 
 class CreateUserSerializer(serializers.ModelSerializer):
@@ -183,7 +184,7 @@ class SetPasswordSerializer(serializers.Serializer):
         if not user.invite_is_valid:
             raise serializers.ValidationError("Invite link has expired.")
 
-        return value  # always return the UUID, not the user object
+        return value  
 
     def validate(self, data):
         if data['password'] != data['confirm_password']:
@@ -201,9 +202,6 @@ class SetPasswordSerializer(serializers.Serializer):
         user.invite_status      = 'accepted'
         user.invite_accepted_at = timezone.now()
         user.save()
-
-        if user.role == ROLE_USER:
-            _ensure_merchant_linked(user)
 
         user.refresh_from_db()
         return user
@@ -255,9 +253,9 @@ class MonitorUserProfileSerializer(serializers.ModelSerializer):
     def get_merchant(self, obj):
         if obj.role != ROLE_USER:
             return None
-        from Merchants.serializers import MerchantListSerializer
+        
         try:
-            return MerchantListSerializer(Merchant.objects.get(email=obj.email)).data
+            return MerchantListSerializer(obj.merchant_profile).data
         except Merchant.DoesNotExist:
             return None
 
@@ -283,7 +281,7 @@ class UserListSerializer(serializers.ModelSerializer):
     def get_merchant(self, obj):
         if obj.role != ROLE_USER:
             return None
-        from Merchants.serializers import MerchantListSerializer
+        
         try:
             return MerchantListSerializer(Merchant.objects.get(email=obj.email)).data
         except Merchant.DoesNotExist:
@@ -292,14 +290,13 @@ class UserListSerializer(serializers.ModelSerializer):
 
 def _ensure_merchant_linked(user):
     try:
-        if user.merchant_profile:
-            return user.merchant_profile
+        return user.merchant_profile
     except Merchant.DoesNotExist:
         pass
 
     return Merchant.objects.create(
         user          = user,
-        business_name = user.first_name or user.email,
+        business_name = '',
         email         = user.email,
         business_type = 'other',
         created_by    = user.created_by,

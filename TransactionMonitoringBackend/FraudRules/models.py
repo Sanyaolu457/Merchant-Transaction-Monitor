@@ -13,6 +13,7 @@ class FlagRule(models.Model):
         ("geo_mismatch",     "Geo Mismatch"),
         ("device_change",    "Device Change"),
         ("night_activity",   "Night Activity"),
+        ('failed_transactions', 'Failed Transactions'),
     ]
     RISK_LEVELS = [
         ("low",      "Low"),

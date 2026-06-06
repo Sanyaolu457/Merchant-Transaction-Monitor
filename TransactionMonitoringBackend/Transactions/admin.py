@@ -29,7 +29,7 @@ class TransactionAdmin(admin.ModelAdmin):
         'amount', 'transaction_type', 'status',
         'channel', 'is_flagged', 'created_at',
     ]
-    list_filter    = ['status', 'transaction_type', 'channel', 'is_flagged']
+    list_filter    = ['status', 'transaction_type', 'channel', 'is_flagged',]
     search_fields  = ['reference', 'customer_name', 'merchant__business_name']
     readonly_fields = ['transaction_id', 'reference', 'created_at', 'updated_at']
     ordering       = ['-created_at']
@@ -46,7 +46,7 @@ class TransactionAdmin(admin.ModelAdmin):
             'fields': ('channel', 'channel_detail')
         }),
         ('Flags & Timestamps', {
-            'fields': ('is_flagged', 'created_at', 'updated_at')
+            'fields': ('is_flagged', 'risk_level', 'created_at', 'updated_at')
         }),
     )
 

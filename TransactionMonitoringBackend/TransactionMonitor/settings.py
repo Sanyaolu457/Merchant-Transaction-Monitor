@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'Transactions',
     'Merchants',
     'FraudRules',
+    'Terminal',
 ]
 
 MIDDLEWARE = [
